@@ -29,7 +29,7 @@ use std::sync::Arc;
 use crate::core::compiler::unit_dependencies::build_unit_dependencies;
 use crate::core::compiler::unit_graph::{self, UnitDep, UnitGraph};
 use crate::core::compiler::{standard_lib, TargetInfo};
-use crate::core::compiler::{BuildConfig, BuildContext, Compilation, Context};
+use crate::core::compiler::{BuildConfig, BuildContext, Compilation, Context, LanguageOps};
 use crate::core::compiler::{CompileKind, CompileMode, CompileTarget, RustcTargetData, Unit};
 use crate::core::compiler::{DefaultExecutor, Executor, UnitInterner};
 use crate::core::profiles::{Profiles, UnitFor};
@@ -611,6 +611,10 @@ pub fn create_bcx<'a, 'cfg>(
             );
         }
     }
+    let mut search_paths = vec![ws.config().home().clone().into_path_unlocked().join("bin")];
+    if let Some(val) = std::env::var_os("PATH") {
+        search_paths.extend(std::env::split_paths(&val));
+    }
 
     let bcx = BuildContext::new(
         ws,
@@ -621,6 +625,7 @@ pub fn create_bcx<'a, 'cfg>(
         target_data,
         units,
         unit_graph,
+        LanguageOps::new(search_paths.iter())?,
     )?;
 
     Ok(bcx)

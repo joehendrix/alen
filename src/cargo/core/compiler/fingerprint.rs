@@ -330,7 +330,7 @@ use serde::ser;
 use serde::{Deserialize, Serialize};
 
 use crate::core::compiler::unit_graph::UnitDep;
-use crate::core::Package;
+use crate::core::{Language, Package};
 use crate::util;
 use crate::util::errors::CargoResult;
 use crate::util::interning::InternedString;
@@ -1307,6 +1307,11 @@ fn calculate_normal(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Finger
         .collect::<CargoResult<Vec<_>>>()?;
     deps.sort_by(|a, b| a.pkg_id.cmp(&b.pkg_id));
 
+    let rustc = match unit.pkg.manifest().language() {
+        Language::Rust => util::hash_u64(&cx.bcx.rustc().verbose_version),
+        Language::External(ref lang) => cx.bcx.language.toolchain_hash(lang)?,
+    };
+
     // Afterwards calculate our own fingerprint information.
     let target_root = target_root(cx);
     let local = if unit.mode.is_doc() {
@@ -1366,7 +1371,7 @@ fn calculate_normal(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Finger
     }
     let compile_kind = unit.kind.fingerprint_hash();
     Ok(Fingerprint {
-        rustc: util::hash_u64(&cx.bcx.rustc().verbose_version),
+        rustc,
         target: util::hash_u64(&unit.target),
         profile: profile_hash,
         // Note that .0 is hashed here, not .1 which is the cwd. That doesn't

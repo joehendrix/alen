@@ -8,8 +8,9 @@ use cargo_util::{paths, ProcessBuilder};
 use semver::Version;
 
 use super::BuildContext;
+use crate::core::compiler::build_context::LanguageOps;
 use crate::core::compiler::{CompileKind, Metadata, Unit};
-use crate::core::Package;
+use crate::core::{Language, Package};
 use crate::util::{config, CargoResult, Config};
 
 /// Structure with enough information to run `rustdoc --test`.
@@ -161,13 +162,19 @@ impl<'cfg> Compilation<'cfg> {
     /// flag), see [`crate::core::compiler::Context::primary_packages`].
     ///
     /// `is_workspace` is true if this is a workspace member.
+    ///
+    /// The external language extension will invoke the other language
+    /// compiler with the code that would have invoked rustc.
     pub fn rustc_process(
         &self,
+        lang_ops: &LanguageOps,
         unit: &Unit,
         is_primary: bool,
         is_workspace: bool,
     ) -> CargoResult<ProcessBuilder> {
-        let rustc = if is_primary && self.primary_rustc_process.is_some() {
+        let rustc = if let Language::External(ref lang) = unit.pkg.manifest().language() {
+            lang_ops.compiler(lang)?
+        } else if is_primary && self.primary_rustc_process.is_some() {
             self.primary_rustc_process.clone().unwrap()
         } else if is_workspace {
             self.rustc_workspace_wrapper_process.clone()

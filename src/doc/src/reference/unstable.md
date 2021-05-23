@@ -1361,3 +1361,20 @@ name = "mypackage"
 version = "0.0.1"
 language = "lean"
 ```
+
+#### Defining a new external language
+
+To define a new external language, one needs to create an executable
+named `cargobuild-zzz` where `zzz` is the name of the language, and
+put this in the Cargo executable search path.  The Cargo executable
+search path is `CARGO_HOME/bin` as well as the user path.  This binary
+is expected to support several commands, defined below, so that Cargo
+can dispatch core functionality to the user-defined executable.
+
+FIXME.  Provide documentation of API for external commands including.
+* Subcommands
+* Arguments to subcommands
+* Environment variables set
+* File locations relevant to subcommands in target directory and CARGO_HOME.
+* How stdin, stdout, and stderr are interpreted by subcommands.
+* Meaning of return codes.

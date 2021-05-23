@@ -10,6 +10,9 @@ use crate::util::Rustc;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+mod external_language;
+pub use external_language::LanguageOps;
+
 mod target_info;
 pub use self::target_info::{
     FileFlavor, FileType, RustDocFingerprint, RustcTargetData, TargetInfo,
@@ -49,6 +52,9 @@ pub struct BuildContext<'a, 'cfg> {
 
     /// The list of all kinds that are involved in this build
     pub all_kinds: HashSet<CompileKind>,
+
+    /// External language operations.
+    pub language: LanguageOps,
 }
 
 impl<'a, 'cfg> BuildContext<'a, 'cfg> {
@@ -61,6 +67,7 @@ impl<'a, 'cfg> BuildContext<'a, 'cfg> {
         target_data: RustcTargetData<'cfg>,
         roots: Vec<Unit>,
         unit_graph: UnitGraph,
+        language: LanguageOps,
     ) -> CargoResult<BuildContext<'a, 'cfg>> {
         let all_kinds = unit_graph
             .keys()
@@ -80,6 +87,7 @@ impl<'a, 'cfg> BuildContext<'a, 'cfg> {
             roots,
             unit_graph,
             all_kinds,
+            language,
         })
     }
 

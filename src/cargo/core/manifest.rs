@@ -494,6 +494,11 @@ impl Manifest {
         &self.unstable_features
     }
 
+    /// Language for compiler.
+    pub fn language(&self) -> &Language {
+        &self.language
+    }
+
     /// The style of resolver behavior to use, declared with the `resolver` field.
     ///
     /// Returns `None` if it is not specified.

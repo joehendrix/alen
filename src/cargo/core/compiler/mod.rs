@@ -34,7 +34,8 @@ use log::debug;
 
 pub use self::build_config::{BuildConfig, CompileMode, MessageFormat};
 pub use self::build_context::{
-    BuildContext, FileFlavor, FileType, RustDocFingerprint, RustcTargetData, TargetInfo,
+    BuildContext, FileFlavor, FileType, LanguageOps, RustDocFingerprint, RustcTargetData,
+    TargetInfo,
 };
 use self::build_plan::BuildPlan;
 pub use self::compilation::{Compilation, Doctest, UnitOutput};
@@ -573,9 +574,9 @@ fn prepare_rustc(
     let is_primary = cx.is_primary_package(unit);
     let is_workspace = cx.bcx.ws.is_member(&unit.pkg);
 
-    let mut base = cx
-        .compilation
-        .rustc_process(unit, is_primary, is_workspace)?;
+    let mut base =
+        cx.compilation
+            .rustc_process(&cx.bcx.language, unit, is_primary, is_workspace)?;
 
     if is_primary {
         base.env("CARGO_PRIMARY_PACKAGE", "1");
