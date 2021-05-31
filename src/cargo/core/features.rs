@@ -111,19 +111,19 @@ pub const SEE_CHANNELS: &str =
 
 /// The language a package is in.
 #[derive(Clone, Debug)]
-pub enum Language {
+pub enum BuildSystemId {
     /// Rust language
     Rust,
     /// A language supported by an external command.
     External(String),
 }
 
-impl FromStr for Language {
+impl FromStr for BuildSystemId {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Error> {
         match s {
-            "rust" => Ok(Language::Rust),
-            s => Ok(Language::External(s.to_string())),
+            "rust" => Ok(BuildSystemId::Rust),
+            s => Ok(BuildSystemId::External(s.to_string())),
         }
     }
 }
@@ -413,8 +413,8 @@ features! {
     // Allow to specify per-package targets (compile kinds)
     (unstable, per_package_target, "", "reference/unstable.html#per-package-target"),
 
-    // Enable external language support.
-    (unstable, extern_language, "", "reference/unstable.html#extern-language"),
+    // Enable external build system support.
+    (unstable, extern_build, "", "reference/unstable.html#extern-build"),
 }
 
 const PUBLISH_LOCKFILE_REMOVED: &str = "The publish-lockfile key in Cargo.toml \

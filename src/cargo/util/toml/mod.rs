@@ -21,7 +21,7 @@ use crate::core::manifest::{ManifestMetadata, TargetSourcePath, Warnings};
 use crate::core::resolver::ResolveBehavior;
 use crate::core::{Dependency, Manifest, PackageId, Summary, Target};
 use crate::core::{
-    Edition, EitherManifest, Feature, Features, Language, VirtualManifest, Workspace,
+    Edition, EitherManifest, Feature, Features, BuildSystemId, VirtualManifest, Workspace,
 };
 use crate::core::{GitReference, PackageIdSpec, SourceId, WorkspaceConfig, WorkspaceRootConfig};
 use crate::sources::{CRATES_IO_INDEX, CRATES_IO_REGISTRY};
@@ -104,11 +104,14 @@ fn do_read_manifest(
             TomlManifest::to_real_manifest(&manifest, source_id, package_root, config)?;
         add_unused(manifest.warnings_mut());
         if manifest.targets().iter().all(|t| t.is_custom_build()) {
-            bail!(
-                "no targets specified in the manifest\n\
-                 either src/lib.rs, src/main.rs, a [lib] section, or \
-                 [[bin]] section must be present"
-            )
+            let hint = match manifest.build_system() {
+                BuildSystemId::Rust => {
+                    "\neither src/lib.rs, src/main.rs, a [lib] section, or \
+                            [[bin]] section must be present"
+                }
+                BuildSystemId::External(_lang) => "",
+            };
+            bail!("no targets specified in the manifest{}", hint);
         }
         Ok((EitherManifest::Real(manifest), paths))
     } else {
@@ -789,7 +792,7 @@ impl<'de> de::Deserialize<'de> for VecStringOrBool {
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct TomlProject {
-    language: Option<String>,
+    buildsystem: Option<String>,
     edition: Option<String>,
     rust_version: Option<String>,
     name: InternedString,
@@ -859,6 +862,41 @@ struct Context<'a, 'b> {
     platform: Option<Platform>,
     root: &'a Path,
     features: &'a Features,
+}
+
+fn parse_buildsystem(
+    warnings: &mut Vec<String>,
+    config: &Config,
+    features: &Features,
+    project_buildsystem: &Option<String>,
+) -> CargoResult<BuildSystemId> {
+    if let Some(lang) = project_buildsystem {
+        if features.require(Feature::extern_build()).is_err() {
+            let mut msg =
+                "`buildsystem` is not supported on this version of Cargo and will be ignored."
+                    .to_string();
+            if config.nightly_features_allowed {
+                msg.push_str(
+                    "\n\n\
+                    Consider adding `cargo-features = [\"extern-build\"]` to the manifest.",
+                );
+            } else {
+                msg.push_str(
+                    "\n\n\
+                    This Cargo does not support nightly features, but if you\n\
+                    switch to nightly channel you can add\n\
+                    `cargo-features = [\"extern-build\"]` to enable this feature.",
+                );
+            }
+            warnings.push(msg);
+            Ok(BuildSystemId::Rust)
+        } else {
+            lang.parse()
+                .with_context(|| "failed to parse the `buildsystem` key")
+        }
+    } else {
+        Ok(BuildSystemId::Rust)
+    }
 }
 
 impl TomlManifest {
@@ -1033,34 +1071,7 @@ impl TomlManifest {
 
         let pkgid = project.to_package_id(source_id)?;
 
-        let language = if let Some(language) = &project.language {
-            if features.require(Feature::extern_language()).is_err() {
-                let mut msg =
-                    "`language` is not supported on this version of Cargo and will be ignored."
-                        .to_string();
-                if config.nightly_features_allowed {
-                    msg.push_str(
-                        "\n\n\
-                        Consider adding `cargo-features = [\"extern-language\"]` to the manifest.",
-                    );
-                } else {
-                    msg.push_str(
-                        "\n\n\
-                        This Cargo does not support nightly features, but if you\n\
-                        switch to nightly channel you can add\n\
-                        `cargo-features = [\"extern-language\"]` to enable this feature.",
-                    );
-                }
-                warnings.push(msg);
-                Language::Rust
-            } else {
-                language
-                    .parse()
-                    .with_context(|| "failed to parse the `language` key")?
-            }
-        } else {
-            Language::Rust
-        };
+        let language = parse_buildsystem(&mut warnings, config, &features, &project.buildsystem)?;
 
         let edition = if let Some(ref edition) = project.edition {
             features
@@ -1153,17 +1164,31 @@ impl TomlManifest {
         // If we have no lib at all, use the inferred lib, if available.
         // If we have a lib with a path, we're done.
         // If we have a lib with no path, use the inferred lib or else the package name.
-        let targets = targets(
-            &features,
-            me,
-            package_name,
-            package_root,
-            edition,
-            &project.build,
-            &project.metabuild,
-            &mut warnings,
-            &mut errors,
-        )?;
+        let targets = match language {
+            BuildSystemId::Rust => targets(
+                &features,
+                me,
+                package_name,
+                package_root,
+                edition,
+                &project.build,
+                &project.metabuild,
+                &mut warnings,
+                &mut errors,
+            )?,
+            BuildSystemId::External(ref lang) => config.build_system().targets(
+                &lang,
+                &features,
+                me,
+                package_name,
+                package_root,
+                &mut warnings,
+                &mut errors,
+            )?,
+        };
+        for ref tgt in &targets {
+            println!("Target: {:?}", tgt);
+        }
 
         if targets.is_empty() {
             debug!("manifest has no build targets");

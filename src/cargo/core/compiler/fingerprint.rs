@@ -330,7 +330,7 @@ use serde::ser;
 use serde::{Deserialize, Serialize};
 
 use crate::core::compiler::unit_graph::UnitDep;
-use crate::core::{Language, Package};
+use crate::core::{BuildSystemId, Package};
 use crate::util;
 use crate::util::errors::CargoResult;
 use crate::util::interning::InternedString;
@@ -1307,9 +1307,9 @@ fn calculate_normal(cx: &mut Context<'_, '_>, unit: &Unit) -> CargoResult<Finger
         .collect::<CargoResult<Vec<_>>>()?;
     deps.sort_by(|a, b| a.pkg_id.cmp(&b.pkg_id));
 
-    let rustc = match unit.pkg.manifest().language() {
-        Language::Rust => util::hash_u64(&cx.bcx.rustc().verbose_version),
-        Language::External(ref lang) => cx.bcx.language.toolchain_hash(lang)?,
+    let rustc = match unit.pkg.manifest().build_system() {
+        BuildSystemId::Rust => util::hash_u64(&cx.bcx.rustc().verbose_version),
+        BuildSystemId::External(ref nm) => cx.bcx.build_system().toolchain_hash(nm)?,
     };
 
     // Afterwards calculate our own fingerprint information.

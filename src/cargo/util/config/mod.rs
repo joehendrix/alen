@@ -68,6 +68,7 @@ use std::time::Instant;
 use self::ConfigValue as CV;
 use crate::core::compiler::rustdoc::RustdocExternMap;
 use crate::core::shell::Verbosity;
+use crate::core::external::ExternalBuildMgr;
 use crate::core::{features, CliUnstable, Shell, SourceId, Workspace};
 use crate::ops;
 use crate::util::errors::CargoResult;
@@ -200,6 +201,8 @@ pub struct Config {
     /// NOTE: this should be set before `configure()`. If calling this from an integration test,
     /// consider using `ConfigBuilder::enable_nightly_features` instead.
     pub nightly_features_allowed: bool,
+
+    build_system: ExternalBuildMgr,
 }
 
 impl Config {
@@ -246,6 +249,11 @@ impl Config {
             _ => true,
         };
 
+        let mut search_paths = vec![homedir.join("bin")];
+        if let Some(val) = std::env::var_os("PATH") {
+            search_paths.extend(std::env::split_paths(&val));
+        }
+
         Config {
             home_path: Filesystem::new(homedir),
             shell: RefCell::new(shell),
@@ -285,6 +293,7 @@ impl Config {
             progress_config: ProgressConfig::default(),
             env_config: LazyCell::new(),
             nightly_features_allowed: matches!(&*features::channel(), "nightly" | "dev"),
+            build_system: ExternalBuildMgr::new(search_paths.iter()),
         }
     }
 
@@ -1602,6 +1611,8 @@ impl Config {
     }
 
     pub fn release_package_cache_lock(&self) {}
+
+    pub fn build_system<'a>(&'a self) -> &'a ExternalBuildMgr { &self.build_system }
 }
 
 /// Internal error for serde errors.

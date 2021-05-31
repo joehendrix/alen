@@ -1,5 +1,6 @@
 use crate::core::compiler::unit_graph::UnitGraph;
 use crate::core::compiler::{BuildConfig, CompileKind, Unit};
+use crate::core::external::ExternalBuildMgr;
 use crate::core::profiles::Profiles;
 use crate::core::PackageSet;
 use crate::core::Workspace;
@@ -9,9 +10,6 @@ use crate::util::interning::InternedString;
 use crate::util::Rustc;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-
-mod external_language;
-pub use external_language::LanguageOps;
 
 mod target_info;
 pub use self::target_info::{
@@ -52,9 +50,6 @@ pub struct BuildContext<'a, 'cfg> {
 
     /// The list of all kinds that are involved in this build
     pub all_kinds: HashSet<CompileKind>,
-
-    /// External language operations.
-    pub language: LanguageOps,
 }
 
 impl<'a, 'cfg> BuildContext<'a, 'cfg> {
@@ -67,7 +62,6 @@ impl<'a, 'cfg> BuildContext<'a, 'cfg> {
         target_data: RustcTargetData<'cfg>,
         roots: Vec<Unit>,
         unit_graph: UnitGraph,
-        language: LanguageOps,
     ) -> CargoResult<BuildContext<'a, 'cfg>> {
         let all_kinds = unit_graph
             .keys()
@@ -87,7 +81,6 @@ impl<'a, 'cfg> BuildContext<'a, 'cfg> {
             roots,
             unit_graph,
             all_kinds,
-            language,
         })
     }
 
@@ -129,5 +122,9 @@ impl<'a, 'cfg> BuildContext<'a, 'cfg> {
 
     pub fn extra_args_for(&self, unit: &Unit) -> Option<&Vec<String>> {
         self.extra_compiler_args.get(unit)
+    }
+
+    pub fn build_system(&self) -> &ExternalBuildMgr {
+        self.ws.config().build_system()
     }
 }

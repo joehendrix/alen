@@ -8,9 +8,8 @@ use cargo_util::{paths, ProcessBuilder};
 use semver::Version;
 
 use super::BuildContext;
-use crate::core::compiler::build_context::LanguageOps;
 use crate::core::compiler::{CompileKind, Metadata, Unit};
-use crate::core::{Language, Package};
+use crate::core::Package;
 use crate::util::{config, CargoResult, Config};
 
 /// Structure with enough information to run `rustdoc --test`.
@@ -162,19 +161,13 @@ impl<'cfg> Compilation<'cfg> {
     /// flag), see [`crate::core::compiler::Context::primary_packages`].
     ///
     /// `is_workspace` is true if this is a workspace member.
-    ///
-    /// The external language extension will invoke the other language
-    /// compiler with the code that would have invoked rustc.
     pub fn rustc_process(
         &self,
-        lang_ops: &LanguageOps,
         unit: &Unit,
         is_primary: bool,
         is_workspace: bool,
     ) -> CargoResult<ProcessBuilder> {
-        let rustc = if let Language::External(ref lang) = unit.pkg.manifest().language() {
-            lang_ops.compiler(lang)?
-        } else if is_primary && self.primary_rustc_process.is_some() {
+        let rustc = if is_primary && self.primary_rustc_process.is_some() {
             self.primary_rustc_process.clone().unwrap()
         } else if is_workspace {
             self.rustc_workspace_wrapper_process.clone()
@@ -258,7 +251,7 @@ impl<'cfg> Compilation<'cfg> {
     ///
     /// The package argument is also used to configure environment variables as
     /// well as the working directory of the child process.
-    fn fill_env(
+    pub fn fill_env(
         &self,
         mut cmd: ProcessBuilder,
         pkg: &Package,
@@ -367,7 +360,7 @@ impl<'cfg> Compilation<'cfg> {
 
 /// Prepares a rustc_tool process with additional environment variables
 /// that are only relevant in a context that has a unit
-fn fill_rustc_tool_env(mut cmd: ProcessBuilder, unit: &Unit) -> ProcessBuilder {
+pub fn fill_rustc_tool_env(mut cmd: ProcessBuilder, unit: &Unit) -> ProcessBuilder {
     if unit.target.is_bin() {
         cmd.env("CARGO_BIN_NAME", unit.target.name());
     }

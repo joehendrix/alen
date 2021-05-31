@@ -29,7 +29,7 @@ use std::sync::Arc;
 use crate::core::compiler::unit_dependencies::build_unit_dependencies;
 use crate::core::compiler::unit_graph::{self, UnitDep, UnitGraph};
 use crate::core::compiler::{standard_lib, TargetInfo};
-use crate::core::compiler::{BuildConfig, BuildContext, Compilation, Context, LanguageOps};
+use crate::core::compiler::{BuildConfig, BuildContext, Compilation, Context};
 use crate::core::compiler::{CompileKind, CompileMode, CompileTarget, RustcTargetData, Unit};
 use crate::core::compiler::{DefaultExecutor, Executor, UnitInterner};
 use crate::core::profiles::{Profiles, UnitFor};
@@ -624,8 +624,7 @@ pub fn create_bcx<'a, 'cfg>(
         extra_compiler_args,
         target_data,
         units,
-        unit_graph,
-        LanguageOps::new(search_paths.iter())?,
+        unit_graph
     )?;
 
     Ok(bcx)
