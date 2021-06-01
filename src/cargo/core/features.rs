@@ -109,6 +109,25 @@ pub const SEE_CHANNELS: &str =
     "See https://doc.rust-lang.org/book/appendix-07-nightly-rust.html for more information \
      about Rust release channels.";
 
+/// The language a package is in.
+#[derive(Clone, Debug)]
+pub enum BuildSystemId {
+    /// Rust language
+    Rust,
+    /// A language supported by an external command.
+    External(String),
+}
+
+impl FromStr for BuildSystemId {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Error> {
+        match s {
+            "rust" => Ok(BuildSystemId::Rust),
+            s => Ok(BuildSystemId::External(s.to_string())),
+        }
+    }
+}
+
 /// The edition of the compiler (RFC 2052)
 #[derive(Clone, Copy, Debug, Hash, PartialOrd, Ord, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Edition {
@@ -393,6 +412,9 @@ features! {
 
     // Allow to specify per-package targets (compile kinds)
     (unstable, per_package_target, "", "reference/unstable.html#per-package-target"),
+
+    // Enable external build system support.
+    (unstable, extern_build, "", "reference/unstable.html#extern-build"),
 }
 
 const PUBLISH_LOCKFILE_REMOVED: &str = "The publish-lockfile key in Cargo.toml \

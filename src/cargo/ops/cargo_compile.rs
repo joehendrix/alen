@@ -611,6 +611,10 @@ pub fn create_bcx<'a, 'cfg>(
             );
         }
     }
+    let mut search_paths = vec![ws.config().home().clone().into_path_unlocked().join("bin")];
+    if let Some(val) = std::env::var_os("PATH") {
+        search_paths.extend(std::env::split_paths(&val));
+    }
 
     let bcx = BuildContext::new(
         ws,
@@ -620,7 +624,7 @@ pub fn create_bcx<'a, 'cfg>(
         extra_compiler_args,
         target_data,
         units,
-        unit_graph,
+        unit_graph
     )?;
 
     Ok(bcx)

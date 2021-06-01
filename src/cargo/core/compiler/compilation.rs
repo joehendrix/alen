@@ -251,7 +251,7 @@ impl<'cfg> Compilation<'cfg> {
     ///
     /// The package argument is also used to configure environment variables as
     /// well as the working directory of the child process.
-    fn fill_env(
+    pub fn fill_env(
         &self,
         mut cmd: ProcessBuilder,
         pkg: &Package,
@@ -360,7 +360,7 @@ impl<'cfg> Compilation<'cfg> {
 
 /// Prepares a rustc_tool process with additional environment variables
 /// that are only relevant in a context that has a unit
-fn fill_rustc_tool_env(mut cmd: ProcessBuilder, unit: &Unit) -> ProcessBuilder {
+pub fn fill_rustc_tool_env(mut cmd: ProcessBuilder, unit: &Unit) -> ProcessBuilder {
     if unit.target.is_bin() {
         cmd.env("CARGO_BIN_NAME", unit.target.name());
     }

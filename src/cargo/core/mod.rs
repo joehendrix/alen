@@ -1,5 +1,5 @@
 pub use self::dependency::Dependency;
-pub use self::features::{CliUnstable, Edition, Feature, Features};
+pub use self::features::{CliUnstable, Edition, Feature, Features, BuildSystemId};
 pub use self::manifest::{EitherManifest, VirtualManifest};
 pub use self::manifest::{Manifest, Target, TargetKind};
 pub use self::package::{Package, PackageSet};
@@ -14,6 +14,7 @@ pub use self::workspace::{MaybePackage, Members, Workspace, WorkspaceConfig, Wor
 
 pub mod compiler;
 pub mod dependency;
+pub mod external;
 pub mod features;
 pub mod manifest;
 pub mod package;

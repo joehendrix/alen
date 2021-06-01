@@ -1,5 +1,6 @@
 use crate::core::compiler::unit_graph::UnitGraph;
 use crate::core::compiler::{BuildConfig, CompileKind, Unit};
+use crate::core::external::ExternalBuildMgr;
 use crate::core::profiles::Profiles;
 use crate::core::PackageSet;
 use crate::core::Workspace;
@@ -121,5 +122,9 @@ impl<'a, 'cfg> BuildContext<'a, 'cfg> {
 
     pub fn extra_args_for(&self, unit: &Unit) -> Option<&Vec<String>> {
         self.extra_compiler_args.get(unit)
+    }
+
+    pub fn build_system(&self) -> &ExternalBuildMgr {
+        self.ws.config().build_system()
     }
 }

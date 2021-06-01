@@ -37,9 +37,9 @@ pub use self::build_context::{
     BuildContext, FileFlavor, FileType, RustDocFingerprint, RustcTargetData, TargetInfo,
 };
 use self::build_plan::BuildPlan;
-pub use self::compilation::{Compilation, Doctest, UnitOutput};
+pub use self::compilation::{Compilation, Doctest, UnitOutput, fill_rustc_tool_env};
 pub use self::compile_kind::{CompileKind, CompileTarget};
-pub use self::context::{Context, Metadata};
+pub use self::context::{Context, Metadata, OutputFile};
 pub use self::crate_type::CrateType;
 pub use self::custom_build::{BuildOutput, BuildScriptOutputs, BuildScripts};
 pub use self::job::Freshness;
@@ -53,7 +53,7 @@ use crate::core::compiler::future_incompat::FutureIncompatReport;
 pub use crate::core::compiler::unit::{Unit, UnitInterner};
 use crate::core::manifest::TargetSourcePath;
 use crate::core::profiles::{PanicStrategy, Profile, Strip};
-use crate::core::{Feature, PackageId, Target};
+use crate::core::{BuildSystemId, Feature, PackageId, Target};
 use crate::util::errors::{CargoResult, VerboseError};
 use crate::util::interning::InternedString;
 use crate::util::machine_message::{self, Message};
@@ -573,9 +573,14 @@ fn prepare_rustc(
     let is_primary = cx.is_primary_package(unit);
     let is_workspace = cx.bcx.ws.is_member(&unit.pkg);
 
-    let mut base = cx
-        .compilation
-        .rustc_process(unit, is_primary, is_workspace)?;
+    let mut base = if let BuildSystemId::External(ref lang) = unit.pkg.manifest().build_system() {
+        let rustc = cx.bcx.build_system().compiler(lang)?;
+        let cmd = fill_rustc_tool_env(rustc, unit);
+        cx.compilation.fill_env(cmd, &unit.pkg, None, unit.kind, true)?
+    } else {
+        cx.compilation
+            .rustc_process(unit, is_primary, is_workspace)?
+    };
 
     if is_primary {
         base.env("CARGO_PRIMARY_PACKAGE", "1");

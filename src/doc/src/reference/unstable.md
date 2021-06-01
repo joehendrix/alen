@@ -92,6 +92,7 @@ Each new feature described below should explain how to use it.
     * [per-package-target](#per-package-target) — Sets the `--target` to use for each individual package.
     * [rust-version](#rust-version) — Allows to declare the minimum supported Rust version.
     * [Edition 2021](#edition-2021) — Adds support for the 2021 Edition.
+    * [extern-build](#extern-build) — Adds support for integrating other languages into Cargo.
 * Information and metadata
     * [Build-plan](#build-plan) — Emits JSON information on which commands will be run.
     * [timings](#timings) — Generates a report on how long individual dependencies took to run.
@@ -1342,3 +1343,40 @@ for the appropriate target and influenced by any other RUSTFLAGS.
     }
 })();
 </script>
+
+### extern-build
+
+The `extern-build` adds support for a `buildsystem` flag in the
+Cargo manifest `package` section.  When omitted or set to `"rust"` this treats
+the package as a Rust package and uses Cargo's existing support for building
+Rust packages.  If set to another value (e.g., `"lean"`), Cargo will invoke
+an external command `cargobuild-lean` to perform build steps for this
+package.  The goal of this is to make it easy to integrate support for other
+buildsystems and languages into Cargo and get first class support for
+incremental builds, computing dependencies and other commands.
+
+```toml
+cargo-features = ["extern-build"]
+
+[package]
+name = "mypackage"
+version = "0.0.1"
+buildsystem = "lean"
+```
+
+#### Defining a new external build system
+
+To define a new external language, one needs to create an executable
+named `cargobuild-zzz` where `zzz` is the name of the language, and
+put this in the Cargo executable search path.  The Cargo executable
+search path is `CARGO_HOME/bin` as well as the user path.  This binary
+is expected to support several commands, defined below, so that Cargo
+can dispatch core functionality to the user-defined executable.
+
+FIXME.  Provide documentation of API for external commands including.
+* Subcommands
+* Arguments to subcommands
+* Environment variables set
+* File locations relevant to subcommands in target directory and CARGO_HOME.
+* How stdin, stdout, and stderr are interpreted by subcommands.
+* Meaning of return codes.
