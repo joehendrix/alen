@@ -1071,7 +1071,7 @@ impl TomlManifest {
 
         let pkgid = project.to_package_id(source_id)?;
 
-        let language = parse_buildsystem(&mut warnings, config, &features, &project.buildsystem)?;
+        let bsystem = parse_buildsystem(&mut warnings, config, &features, &project.buildsystem)?;
 
         let edition = if let Some(ref edition) = project.edition {
             features
@@ -1164,7 +1164,7 @@ impl TomlManifest {
         // If we have no lib at all, use the inferred lib, if available.
         // If we have a lib with a path, we're done.
         // If we have a lib with no path, use the inferred lib or else the package name.
-        let targets = match language {
+        let targets = match bsystem {
             BuildSystemId::Rust => targets(
                 &features,
                 me,
@@ -1176,8 +1176,8 @@ impl TomlManifest {
                 &mut warnings,
                 &mut errors,
             )?,
-            BuildSystemId::External(ref lang) => config.build_system().targets(
-                &lang,
+            BuildSystemId::External(ref ext_bsystem) => config.build_system().targets(
+                ext_bsystem,
                 &features,
                 me,
                 package_name,
@@ -1186,7 +1186,7 @@ impl TomlManifest {
                 &mut errors,
             )?,
         };
-        for ref tgt in &targets {
+        for tgt in &targets {
             println!("Target: {:?}", tgt);
         }
 
@@ -1405,7 +1405,7 @@ impl TomlManifest {
             patch,
             workspace_config,
             features,
-            language,
+            bsystem,
             edition,
             rust_version,
             project.im_a_teapot,
